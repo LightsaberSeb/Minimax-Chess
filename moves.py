@@ -141,6 +141,34 @@ def king_moves(row: int, col: int, board: list):
 
 def knight_moves(row: int, col: int, board: list):
     moves = []
+    
+    piece = board[row][col]
+    color = piece[0]
+    
+    directions = [
+        (1, 2),
+        (-1, 2),
+        (2, 1),
+        (2, -1),
+        (1, -2),
+        (-1, -2),
+        (-2, 1),
+        (-2, -1)
+    ]
+    
+    for drow, dcol in directions:
+        r = row + drow
+        c = col + dcol
+        
+        while 0 <= r  < 8 and 0 <= c < 8:
+            target = board[r][c]
+            
+            if target == "":
+                moves.append((r, c))
+            else:
+                if target[0] != color:
+                    moves.append((r, c))
+    
     return moves
 
 def pawn_moves(row: int, col: int, board: list):
