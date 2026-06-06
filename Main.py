@@ -49,12 +49,11 @@ class Game:
         if self.selected_piece is None:
             if piece != "":
                 self.selected_piece = (row, col)
-                
-                moves = self.move_functions[piece[1]](row, col, self.board)
-                print(moves)
+                self.selected_moves = self.move_functions[piece[1]](row, col, self.board)
         
         elif self.selected_piece == self.last_selection:
             self.selected_piece = None # Cancel the selection if clicking the same piece
+            self.selected_moves = []
 
         else:
             start_row, start_col = self.selected_piece
@@ -63,11 +62,16 @@ class Game:
             if self.board[start_row][start_col] in self.can_castle:
                 self.can_castle[self.board[start_row][start_col]] = False
             
+            # Making sure that the move is legal
+            if not (row, col) in self.selected_moves:
+                return
+            
             # Moving the piece
             self.board[row][col] = self.board[start_row][start_col]
             self.board[start_row][start_col] = ""
             
             self.selected_piece = None
+            self.selected_moves = []
         
         self.refresh_board()
 
@@ -94,6 +98,9 @@ class Game:
                 
                 if self.selected_piece == (row, col):
                     color = flet.Colors.YELLOW
+                
+                if (row, col) in self.selected_moves:
+                    color = flet.Colors.with_opacity(0.1, flet.Colors.BLUE)
 
                 piece = self.board[row][col]
                 content = None

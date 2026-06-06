@@ -106,6 +106,8 @@ def queen_moves(row: int, col: int, board: list):
     
     return moves
 
+
+# STILL NEED TO ADD CASTLING
 def king_moves(row: int, col: int, board: list):
     moves = []
     
@@ -160,7 +162,7 @@ def knight_moves(row: int, col: int, board: list):
         r = row + drow
         c = col + dcol
         
-        while 0 <= r  < 8 and 0 <= c < 8:
+        if 0 <= r < 8 and 0 <= c < 8:
             target = board[r][c]
             
             if target == "":
