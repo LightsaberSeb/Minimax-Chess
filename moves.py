@@ -1,9 +1,9 @@
 # File just to calculate every movement for each of the pieces
 
-def rook_moves(row: int, col: int, board: list):
+def rook_moves(row: int, col: int, state):
     moves = []
     
-    piece = board[row][col]
+    piece = state.board[row][col]
     color = piece[0]
     
     directions = [
@@ -18,7 +18,7 @@ def rook_moves(row: int, col: int, board: list):
         c = col + dcol
         
         while 0 <= r < 8 and 0 <= c < 8:
-            target = board[r][c]
+            target = state.board[r][c]
             
             # Empty tile
             if target == "":
@@ -34,10 +34,10 @@ def rook_moves(row: int, col: int, board: list):
     
     return moves
 
-def bishop_moves(row: int, col: int, board: list):
+def bishop_moves(row: int, col: int, state):
     moves = []
     
-    piece = board[row][col]
+    piece = state.board[row][col]
     color = piece[0]
     
     directions = [
@@ -52,7 +52,7 @@ def bishop_moves(row: int, col: int, board: list):
         c = col + dcol
         
         while 0 <= r < 8 and 0 <= c < 8:
-            target = board[r][c]
+            target = state.board[r][c]
             
             # Empty Tile
             if target == "":
@@ -68,10 +68,10 @@ def bishop_moves(row: int, col: int, board: list):
     
     return moves
 
-def queen_moves(row: int, col: int, board: list):
+def queen_moves(row: int, col: int, state):
     moves = []
     
-    piece = board[row][col]
+    piece = state.board[row][col]
     color = piece[0]
     
     directions = [
@@ -90,7 +90,7 @@ def queen_moves(row: int, col: int, board: list):
         c = col + dcol
         
         while 0 <= r < 8 and 0 <= c < 8:
-            target = board[r][c]
+            target = state.board[r][c]
             
             # Empty Tile
             if target == "":
@@ -108,10 +108,10 @@ def queen_moves(row: int, col: int, board: list):
 
 
 # STILL NEED TO ADD CASTLING
-def king_moves(row: int, col: int, board: list):
+def king_moves(row: int, col: int, state):
     moves = []
     
-    piece = board[row][col]
+    piece = state.board[row][col]
     color = piece[0]
     
     directions = [
@@ -130,7 +130,7 @@ def king_moves(row: int, col: int, board: list):
         c = col + dcol
         
         if 0 <= r < 8 and 0 <= c < 8:
-            target = board[r][c]
+            target = state.board[r][c]
             
             if target == "":
                 moves.append((r, c))
@@ -141,10 +141,10 @@ def king_moves(row: int, col: int, board: list):
     
     return moves
 
-def knight_moves(row: int, col: int, board: list):
+def knight_moves(row: int, col: int, state):
     moves = []
     
-    piece = board[row][col]
+    piece = state.board[row][col]
     color = piece[0]
     
     directions = [
@@ -163,7 +163,7 @@ def knight_moves(row: int, col: int, board: list):
         c = col + dcol
         
         if 0 <= r < 8 and 0 <= c < 8:
-            target = board[r][c]
+            target = state.board[r][c]
             
             if target == "":
                 moves.append((r, c))
@@ -173,6 +173,41 @@ def knight_moves(row: int, col: int, board: list):
     
     return moves
 
-def pawn_moves(row: int, col: int, board: list):
+def pawn_moves(row: int, col: int, state):
     moves = []
+    
+    piece = state.board[row][col]
+    color = piece[0]
+    
+    directions = {
+        "w": (0, -1),
+        "b": (0, 1)
+    }
+    
+    start_row = 0
+    if color == "w":
+        start_row = 6
+    else:
+        start_row = 1
+    
+    #Movement logic
+    drow, dcol = directions[color]
+    
+    r = row + drow
+    c = col + dcol
+    
+    if 0 <= r < 8 and 0 <= c < 8:
+        target = state.board[r][c]
+        
+        if target == "":
+            if row == start_row:
+                pass #Move 2 spaces instead of one
+            else:
+                pass #Just move one space
+            
+        # left diagonal and right diagonal capures
+        # if color not same as piece and is diagonal to piece: then capture logic
+    
+    
+    
     return moves
