@@ -16,7 +16,7 @@ class GameState:
             ["wp", "wp", "wp", "wp", "wp", "wp", "wp", "wp"],
             ["wr", "wb", "wn", "wq", "wk", "wn", "wb", "wr"],
         ]
-        self.turn = "w"
+        self.turn = 1 # 1 for white and 0 for black
         self.can_castle = {"bk": True, "wk": True}
         self.en_passant = None
 
@@ -35,7 +35,6 @@ class Game:
         self.selected_moves = []
 
         # Game settings
-        self.turn = "w"
         self.move_functions = {
             "p": moves.pawn_moves,
             "n": moves.knight_moves,
@@ -66,39 +65,75 @@ class Game:
         else:
             start_row, start_col = self.selected_piece
 
+            # Making sure that the move is legal
+            if not (row, col) in self.selected_moves:
+                return
+            
             # Check if the moving piece is one of the kings
             if game_state.board[start_row][start_col] in game_state.can_castle:
                 game_state.can_castle[game_state.board[start_row][start_col]] = False
 
-            # Making sure that the move is legal
-            if not (row, col) in self.selected_moves:
-                return
-
             # Moving the piece
             game_state.board[row][col] = game_state.board[start_row][start_col]
             game_state.board[start_row][start_col] = ""
-
-            self.check_en_passant((row, col))
+            
+            # Check if castling has happened
+            if game_state.board[row][col][1] == "k":
+                delta = col - start_col
+                
+                if delta == 2:
+                    #short castle
+                    rook = game_state.board[row][7]
+                    game_state.board[row][5] = rook
+                    game_state.board[row][7] = ""
+                elif delta == -2:
+                    #long castle
+                    rook = game_state.board[row][0]
+                    game_state.board[row][3] = rook
+                    game_state.board[row][0] = ""
+            
+            # If en passant has happened then, capture the pawn
+            if ((row, col) == game_state.en_passant 
+                and game_state.board[row][col][1] == "p"
+                and start_col != col
+                ):
+                color = game_state.board[row][col][0]
+                if color == "b":
+                    game_state.board[row - 1][col] = ""
+                else:
+                    game_state.board[row + 1][col] = ""
+            
+            self.check_en_passant((row, col), (start_row, start_col))
 
             self.selected_piece = None
             self.selected_moves = []
 
         self.refresh_board()
 
-    def check_en_passant(self, pos):
+    def check_en_passant(self, pos, init_pos):
         row, col = pos
+        irow, icol = init_pos
         piece = game_state.board[row][col][1]
-        right = game_state.board[row][col + 1]
-        left = game_state.board[row][col - 1]
+        color = game_state.board[row][col][0]
+
+        if 0 <= abs(row) < 7 and 0 <= abs(col) < 7:
+            right = game_state.board[row][col + 1]
+            left = game_state.board[row][col - 1]
+        else:
+            return
 
         if piece != "p":
             game_state.en_passant = None
+            return
 
-        if (right == "") and (left == ""):
+        drow = row - irow
+        dcol = col - icol
+        if dcol != 0 or abs(drow) != 2:
             game_state.en_passant = None
-
-        if (right[1] == "p") or (left == "p"):
-            game_state.en_passant = (row, col)
+            return
+        
+        if (right != "" and right[1] == "p" and color != right[0]) or (left != "" and left[1] == "p" and color != left[0]):
+            game_state.en_passant = ((irow + row) // 2, col)
 
     def refresh_board(self):
         self.app.controls.clear()
@@ -151,9 +186,7 @@ class Game:
         self.app = app
         app.title = "Chess"
 
-        app.window.width = (
-            self.window_size_x + 35
-        )  # Maybe increase the size of this in the future for settings tab
+        app.window.width = self.window_size_x + 35 # Maybe increase the size of this in the future for settings tab
         app.window.height = self.window_size_y + 60
 
         app.window.resizable = False

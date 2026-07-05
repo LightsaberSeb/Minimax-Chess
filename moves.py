@@ -2,7 +2,7 @@
 # Row = x axis
 # Column = y axis
 
-
+# Rook
 def rook_moves(row: int, col: int, state):
     moves = []
 
@@ -32,7 +32,7 @@ def rook_moves(row: int, col: int, state):
 
     return moves
 
-
+# Bishop
 def bishop_moves(row: int, col: int, state):
     moves = []
 
@@ -62,7 +62,7 @@ def bishop_moves(row: int, col: int, state):
 
     return moves
 
-
+# Queen
 def queen_moves(row: int, col: int, state):
     moves = []
 
@@ -92,15 +92,67 @@ def queen_moves(row: int, col: int, state):
 
     return moves
 
+# King
+def castling(row: int, col: int, state):
+    moves = []
+    piece = state.board[row][col]
+    color = piece[0]
+    
+    if not state.can_castle[piece]:
+        return []
+    
+    if color == "w":
+        # Short Castling
+        if (
+            state.board[7][7] == "wr"
+            and state.board[7][5] == ""
+            and state.board[7][6] == ""
+            # Add if the king is in check or the castling square is being attacked
+        ):
+            moves.append((7, 6))
+        # Long Castling
+        if (
+            state.board[7][0] == "wr"
+            and state.board[7][3] == ""
+            and state.board[7][2] == ""
+            and state.board[7][1] == ""
+        ):
+            moves.append((7, 2))
+    else:
+        # Short Castling
+        if (
+            state.board[0][7] == "br"
+            and state.board[0][5] == ""
+            and state.board[0][6] == ""
+        ):
+            moves.append((0, 6))
+        # Long Castling
+        if (
+            state.board[0][0] == "br"
+            and state.board[0][3] == ""
+            and state.board[0][2] == ""
+            and state.board[0][1] == ""
+        ):
+            moves.append((0, 2))
+    
+    return moves
 
-# STILL NEED TO ADD CASTLING
 def king_moves(row: int, col: int, state):
     moves = []
 
     piece = state.board[row][col]
     color = piece[0]
-
-    directions = [(1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1)]
+    
+    directions = [
+        (1, 0), 
+        (0, 1),
+        (-1, 0),
+        (0, -1),
+        (1, 1),
+        (-1, 1),
+        (1, -1),
+        (-1, -1)
+        ]
 
     for drow, dcol in directions:
         r = row + drow
@@ -115,9 +167,11 @@ def king_moves(row: int, col: int, state):
                 if target[0] != color:
                     moves.append((r, c))
 
+    moves.extend(castling(row, col, state))
+
     return moves
 
-
+# Knight
 def knight_moves(row: int, col: int, state):
     moves = []
 
@@ -150,7 +204,7 @@ def knight_moves(row: int, col: int, state):
 
     return moves
 
-
+# Pawn
 def pawn_moves(row: int, col: int, state):
     moves = []
 
@@ -172,27 +226,38 @@ def pawn_moves(row: int, col: int, state):
     r = row + drow
     c = col + dcol
 
-    if 0 <= r < 8 and 0 <= c < 8:
+    if 0 <= row < 7:
         target = state.board[r][c]
-        target_r = state.board[r][c + 1]
-        target_l = state.board[r][c - 1]
-
+        
         # Movement Logic
         if target == "":
             if (row == start_row) and (state.board[r + i][c] == ""):
                 moves.append((r + i, c))
 
             moves.append((r, c))
-
+        
         # Capture Logic
+        if c <= 0:
+            target_r = state.board[r][c + 1]
+            target_l = ""
+        elif 0 <= c < 7:
+            target_r = state.board[r][c + 1]
+            target_l = state.board[r][c - 1]
+        else:
+            target_r = ""
+            target_l = state.board[r][c - 1]
+
         if target_r != "":
-            moves.append((r, c + 1))
+            if color != target_r[0]:    
+                moves.append((r, c + 1))
         if target_l != "":
-            moves.append((r, c - 1))
+            if color != target_l[0]:
+                moves.append((r, c - 1))
 
         # En Passant
-        # check first if the pawn can be en passanted
-        # check for both left and right to see if the en passant tile is nearby
-        # if it is, add it as a capture move
+        right = (r, c + 1)
+        left = (r, c - 1)
+        if right == state.en_passant or left == state.en_passant:
+            moves.append(state.en_passant)
 
     return moves
