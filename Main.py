@@ -3,7 +3,6 @@ import flet
 import MinimaxAI
 import moves
 
-
 class GameState:
     def __init__(self):
         self.board = [
@@ -55,13 +54,11 @@ class Game:
                 self.selected_moves = self.move_functions[piece[1]](
                     row, col, game_state
                 )
-
         elif self.selected_piece == self.last_selection:
             self.selected_piece = (
                 None  # Cancel the selection if clicking the same piece
             )
             self.selected_moves = []
-
         else:
             start_row, start_col = self.selected_piece
 
@@ -197,5 +194,7 @@ class Game:
 
 board = Game()
 game_state = GameState()
+
+moves.is_path_clear(3, 5, 6, 3, game_state.board)
 
 flet.run(board.run_app, assets_dir="Assets")

@@ -2,6 +2,56 @@
 # Row = x axis
 # Column = y axis
 
+# Helpers
+def is_path_clear(srow, scol, trow, tcol,  board):
+    step_row = (trow > srow) - (trow < srow)
+    step_col = (tcol > scol) - (tcol < scol)
+    
+    while srow != trow or scol != tcol:
+        srow += step_row
+        scol += step_col
+        
+        if board[srow][scol] != "":
+            return False
+    return True
+
+def is_tile_attacked(row: int, col: int, state, attacker: str):
+    for prow in range(7):
+        for pcol in range(7):
+            piece = state.board[prow][pcol]
+            
+            if piece == "":
+                continue
+            
+            if piece[0] != attacker:
+                continue
+            
+            drow = row - prow
+            dcol = col - pcol
+            
+            match piece[1]:
+                case "p":
+                    dir = -1 if piece[1] == "w" else 1
+                    if drow == dir and abs(dcol) == 1:
+                        return True
+                case "n":
+                    if (abs(drow) == 2 and abs(dcol) == 1) or (abs(drow) == 1 and abs(dcol) == 2):
+                        return True
+                case "b":
+                    if abs(drow) == abs(dcol):
+                        return is_path_clear(prow, pcol, row, col, state.board)
+                case "r":
+                    if drow == 0 or dcol == 0:
+                        return is_path_clear(prow, pcol, row, col, state.board)
+                case "q":
+                    if (abs(drow) == abs(dcol)) or (drow == 0 or dcol == 0):
+                        return is_path_clear(prow, pcol, row, col, state.board)
+                case "k":
+                    if max(abs(drow), abs(dcol)) == 1:
+                        return True
+    return False
+
+#Moves
 # Rook
 def rook_moves(row: int, col: int, state):
     moves = []
@@ -107,7 +157,8 @@ def castling(row: int, col: int, state):
             state.board[7][7] == "wr"
             and state.board[7][5] == ""
             and state.board[7][6] == ""
-            # Add if the king is in check or the castling square is being attacked
+            and not is_tile_attacked(7, 5, state, "b")
+            and not is_tile_attacked(7, 6, state, "b")
         ):
             moves.append((7, 6))
         # Long Castling
@@ -116,6 +167,9 @@ def castling(row: int, col: int, state):
             and state.board[7][3] == ""
             and state.board[7][2] == ""
             and state.board[7][1] == ""
+            and not is_tile_attacked(7, 3, state, "b")
+            and not is_tile_attacked(7, 2, state, "b")
+            and not is_tile_attacked(7, 1, state, "b")
         ):
             moves.append((7, 2))
     else:
@@ -124,6 +178,8 @@ def castling(row: int, col: int, state):
             state.board[0][7] == "br"
             and state.board[0][5] == ""
             and state.board[0][6] == ""
+            and not is_tile_attacked(0, 5, state, "w")
+            and not is_tile_attacked(0, 6, state, "w")
         ):
             moves.append((0, 6))
         # Long Castling
@@ -132,6 +188,9 @@ def castling(row: int, col: int, state):
             and state.board[0][3] == ""
             and state.board[0][2] == ""
             and state.board[0][1] == ""
+            and not is_tile_attacked(0, 3, state, "w")
+            and not is_tile_attacked(0, 2, state, "w")
+            and not is_tile_attacked(0, 1, state, "w")
         ):
             moves.append((0, 2))
     
