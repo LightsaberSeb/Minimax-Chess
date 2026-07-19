@@ -124,6 +124,9 @@ def undo_move(state):
         state.board[trow][tcol] = ""
         state.board[srow][scol] = piece
         state.board[crow][ccol] = captured
+    
+    if state.is_promoting:
+        state.is_promoting = False
 
 def is_path_clear(srow, scol, trow, tcol,  board):
     step_row = (trow > srow) - (trow < srow)
