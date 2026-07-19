@@ -3,21 +3,150 @@
 # Column = y axis
 
 # Helpers
+def is_on_check(color: str, state):
+    king = color+"k"
+    opposite = state.opposite(color)
+    row, col = state.king_pos[king]
+    
+    return is_tile_attacked(row, col, state, opposite)
+
+def make_move(srow: int, scol: int, trow: int, tcol: int, type: str, state):
+    changes = []
+    captured = ""
+    piece = state.board[srow][scol]
+    
+    match type:
+        case "normal":
+            if state.board[trow][tcol] != "":
+                captured = state.board[trow][tcol]
+            
+            state.board[trow][tcol] = state.board[srow][scol]
+            state.board[srow][scol] = ""
+            
+            changes.append({
+                "from": (srow, scol),
+                "target": (trow, tcol),
+                "piece": piece,
+                "captured": captured,
+                "captured_pos": (trow, tcol),
+                "type": type
+            })
+        case "en passant":
+            state.board[trow][tcol] = state.board[srow][scol]
+            state.board[srow][scol] = ""
+            
+            color = piece[0]
+            if color == "b":
+                captured = state.board[trow - 1][tcol]
+                captured_pos = (trow - 1, tcol)
+                state.board[trow - 1][tcol] = ""
+            else:
+                captured = state.board[trow + 1][tcol]
+                captured_pos = (trow + 1, tcol)
+                state.board[trow + 1][tcol] = ""
+            
+            changes.append({
+                "from": (srow, scol),
+                "target": (trow, tcol),
+                "piece": piece,
+                "captured": captured,
+                "captured_pos": captured_pos,
+                "type": type
+            })
+        case "castle":
+            delta = tcol - scol
+            state.board[trow][tcol] = state.board[srow][scol]
+            state.board[srow][scol] = ""
+            
+            changes.append({
+                "from": (srow, scol),
+                "target": (trow, tcol),
+                "piece": piece,
+                "captured": "",
+                "captured_pos": (trow, tcol),
+                "type": type
+            })
+            
+            if delta == 2:
+                state.board[trow][5] = state.board[trow][7]
+                state.board[trow][7] = ""
+                
+                changes.append({
+                "from": (trow, 7),
+                "target": (trow, 5),
+                "piece": state.board[trow][5],
+                "captured": "",
+                "captured_pos": (trow, 5),
+                "type": type
+                })
+            elif delta == -2:
+                state.board[trow][3] = state.board[trow][0]
+                state.board[trow][0] = ""
+                
+                changes.append({
+                "from": (trow, 0),
+                "target": (trow, 3),
+                "piece": state.board[trow][3],
+                "captured": "",
+                "captured_pos": (trow, 3),
+                "type": type
+                })
+        case "promotion":
+            if state.board[trow][tcol] != "":
+                captured = state.board[trow][tcol]
+            
+            state.board[trow][tcol] = state.board[srow][scol]
+            state.board[srow][scol] = ""
+            
+            changes.append({
+                "from": (srow, scol),
+                "target": (trow, tcol),
+                "piece": piece,
+                "captured": captured,
+                "captured_pos": (trow, tcol),
+                "type": type
+            })
+            
+            state.is_promoting = True
+    
+    
+    
+    state.change_turn()
+    state.moves.append(changes)
+
+def undo_move(state):
+    move = state.moves.pop()
+
+    for pos in move:
+        srow, scol = pos["from"]
+        trow, tcol = pos["target"]
+        crow, ccol = pos["captured_pos"]
+        piece = pos["piece"]
+        captured = pos["captured"]
+        
+        state.board[trow][tcol] = ""
+        state.board[srow][scol] = piece
+        state.board[crow][ccol] = captured
+
 def is_path_clear(srow, scol, trow, tcol,  board):
     step_row = (trow > srow) - (trow < srow)
     step_col = (tcol > scol) - (tcol < scol)
     
-    while srow != trow or scol != tcol:
+    srow += step_row
+    scol += step_col
+    
+    while (srow, scol) != (trow, tcol):
+        if board[srow][scol] != "":
+            return False
+        
         srow += step_row
         scol += step_col
         
-        if board[srow][scol] != "":
-            return False
     return True
 
 def is_tile_attacked(row: int, col: int, state, attacker: str):
-    for prow in range(7):
-        for pcol in range(7):
+    for prow in range(8):
+        for pcol in range(8):
             piece = state.board[prow][pcol]
             
             if piece == "":
@@ -31,7 +160,7 @@ def is_tile_attacked(row: int, col: int, state, attacker: str):
             
             match piece[1]:
                 case "p":
-                    dir = -1 if piece[1] == "w" else 1
+                    dir = -1 if piece[0] == "w" else 1
                     if drow == dir and abs(dcol) == 1:
                         return True
                 case "n":
@@ -39,17 +168,21 @@ def is_tile_attacked(row: int, col: int, state, attacker: str):
                         return True
                 case "b":
                     if abs(drow) == abs(dcol):
-                        return is_path_clear(prow, pcol, row, col, state.board)
+                        if is_path_clear(prow, pcol, row, col, state.board):
+                            return True
                 case "r":
                     if drow == 0 or dcol == 0:
-                        return is_path_clear(prow, pcol, row, col, state.board)
+                        if is_path_clear(prow, pcol, row, col, state.board):
+                            return True
                 case "q":
                     if (abs(drow) == abs(dcol)) or (drow == 0 or dcol == 0):
-                        return is_path_clear(prow, pcol, row, col, state.board)
+                        if is_path_clear(prow, pcol, row, col, state.board):
+                            return True
                 case "k":
                     if max(abs(drow), abs(dcol)) == 1:
                         return True
     return False
+
 
 #Moves
 # Rook
@@ -202,6 +335,8 @@ def king_moves(row: int, col: int, state):
     piece = state.board[row][col]
     color = piece[0]
     
+    opposite = state.opposite(color)
+    
     directions = [
         (1, 0), 
         (0, 1),
@@ -219,7 +354,14 @@ def king_moves(row: int, col: int, state):
 
         if 0 <= r < 8 and 0 <= c < 8:
             target = state.board[r][c]
-
+            
+            make_move(row, col, r, c, "normal", state)
+            attacked = is_tile_attacked(r, c, state, opposite)
+            undo_move(state)
+            
+            if attacked:
+                continue
+            
             if target == "":
                 moves.append((r, c))
             else:

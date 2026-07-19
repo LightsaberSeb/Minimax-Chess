@@ -1,23 +1,50 @@
 import flet
+import random
 
 import MinimaxAI
 import moves
+from Interface import GUI
 
 class GameState:
     def __init__(self):
         self.board = [
-            ["br", "bb", "bn", "bq", "bk", "bn", "bb", "br"],
+            ["br", "bn", "bb", "bq", "bk", "bb", "bn", "br"],
             ["bp", "bp", "bp", "bp", "bp", "bp", "bp", "bp"],
             ["", "", "", "", "", "", "", ""],
             ["", "", "", "", "", "", "", ""],
             ["", "", "", "", "", "", "", ""],
             ["", "", "", "", "", "", "", ""],
             ["wp", "wp", "wp", "wp", "wp", "wp", "wp", "wp"],
-            ["wr", "wb", "wn", "wq", "wk", "wn", "wb", "wr"],
+            ["wr", "wn", "wb", "wq", "wk", "wb", "wn", "wr"],
         ]
-        self.turn = 1 # 1 for white and 0 for black
+        self.turn = "w"
+        self.start = random.randint(0, 1) # 0 for user 1 for minimax
         self.can_castle = {"bk": True, "wk": True}
+        self.king_pos = {"bk": (0, 4), "wk": (7, 4)}
+        self.check = {"bk": False, "wk": False}
         self.en_passant = None
+        self.is_promoting = False
+        self.moves = []
+    
+    def change_turn(self):
+        if self.turn == "w":
+            self.turn = "b"
+        else:
+            self.turn = "w"
+    
+    def promoting(self, row: int, col: int, promote: str):
+        piece = self.board[row][col]
+        color = piece[0]
+        
+        self.board[row][col] = color+promote
+        self.is_promoting = False
+        game.refresh_board()
+    
+    def opposite(self, color):
+        if color == "w":
+            return "b"
+        else:
+            return "w"
 
 
 class Game:
@@ -27,6 +54,7 @@ class Game:
         self.window_size_x = 640
         self.window_size_y = 640
         self.tile_size = self.window_size_x / 8
+        self.gui = GUI(self, game_state)
 
         # Mouse
         self.selected_piece = None
@@ -44,12 +72,19 @@ class Game:
         }
 
     def on_tile_click(self, row, col):
+        if game_state.is_promoting:
+            return
+        
         piece = game_state.board[row][col]
         self.last_selection = (row, col)
 
         # Piece selection
         if self.selected_piece is None:
             if piece != "":
+                # Cancel the selection if the color doesn't correspond with the turn
+                if game_state.turn != piece[0]:
+                    return
+                
                 self.selected_piece = (row, col)
                 self.selected_moves = self.move_functions[piece[1]](
                     row, col, game_state
@@ -60,8 +95,12 @@ class Game:
             )
             self.selected_moves = []
         else:
+            type = "normal"
             start_row, start_col = self.selected_piece
-
+            piece = game_state.board[start_row][start_col]
+            color = piece[0]
+            opposite = game_state.opposite(color)
+            
             # Making sure that the move is legal
             if not (row, col) in self.selected_moves:
                 return
@@ -70,36 +109,40 @@ class Game:
             if game_state.board[start_row][start_col] in game_state.can_castle:
                 game_state.can_castle[game_state.board[start_row][start_col]] = False
 
-            # Moving the piece
-            game_state.board[row][col] = game_state.board[start_row][start_col]
-            game_state.board[start_row][start_col] = ""
-            
-            # Check if castling has happened
-            if game_state.board[row][col][1] == "k":
-                delta = col - start_col
-                
-                if delta == 2:
-                    #short castle
-                    rook = game_state.board[row][7]
-                    game_state.board[row][5] = rook
-                    game_state.board[row][7] = ""
-                elif delta == -2:
-                    #long castle
-                    rook = game_state.board[row][0]
-                    game_state.board[row][3] = rook
-                    game_state.board[row][0] = ""
-            
-            # If en passant has happened then, capture the pawn
+            # Castling
+            if piece[1] == "k":
+                if abs(col - start_col) == 2:
+                    type = "castle"
+
+            # En passant
             if ((row, col) == game_state.en_passant 
-                and game_state.board[row][col][1] == "p"
+                and piece[1] == "p"
                 and start_col != col
                 ):
-                color = game_state.board[row][col][0]
-                if color == "b":
-                    game_state.board[row - 1][col] = ""
-                else:
-                    game_state.board[row + 1][col] = ""
+                type = "en passant"
             
+            # Promotion
+            if piece[1] == "p":
+                match piece[0]:
+                    case "w":
+                        if row == 0:
+                            type = "promotion"
+                    case "b":
+                        if row == 7:
+                            type = "promotion"
+            
+            # Moving the piece
+            moves.make_move(start_row, start_col, row, col, type, game_state)
+            
+            if moves.is_on_check(color, game_state):
+                moves.undo_move(game_state)
+                return
+            
+            game_state.check[opposite+"k"] = moves.is_on_check(opposite, game_state)
+            
+            if piece[1] == "k":
+                game_state.king_pos[piece] = (row, col)
+
             self.check_en_passant((row, col), (start_row, start_col))
 
             self.selected_piece = None
@@ -112,12 +155,14 @@ class Game:
         irow, icol = init_pos
         piece = game_state.board[row][col][1]
         color = game_state.board[row][col][0]
+        left = ""
+        right = ""
 
-        if 0 <= abs(row) < 7 and 0 <= abs(col) < 7:
-            right = game_state.board[row][col + 1]
+        if col > 0:
             left = game_state.board[row][col - 1]
-        else:
-            return
+
+        if col < 7:
+            right = game_state.board[row][col + 1]
 
         if piece != "p":
             game_state.en_passant = None
@@ -134,49 +179,17 @@ class Game:
 
     def refresh_board(self):
         self.app.controls.clear()
+        
+        containers = [self.gui.build_board()]
 
-        self.app.add(flet.Stack(controls=[self.build_board()]))
+        if game_state.is_promoting:
+            containers.append(self.gui.promote_ui)
+        else:
+            if self.gui.promote_ui in containers:
+                containers.remove(self.gui.promote_ui)
+
+        self.app.add(flet.Stack(controls=containers))
         self.app.update()
-
-    # Run the builder functions for the game
-    def build_board(self):
-        rows = []
-        colors = [flet.Colors.BROWN_100, flet.Colors.BROWN]
-        for row in range(8):
-            cols = []
-            for col in range(8):
-                color = colors[(row + col) % 2]
-
-                if self.selected_piece == (row, col):
-                    color = flet.Colors.YELLOW
-
-                if (row, col) in self.selected_moves:
-                    color = flet.Colors.with_opacity(0.1, flet.Colors.BLUE)
-
-                piece = game_state.board[row][col]
-                content = None
-
-                if piece != "":
-                    content = flet.Image(
-                        src=f"{piece}.png",
-                        width=self.tile_size,
-                        height=self.tile_size,
-                    )
-
-                cols.append(
-                    flet.Container(
-                        width=self.tile_size,
-                        height=self.tile_size,
-                        bgcolor=color,
-                        content=content,
-                        alignment=flet.Alignment.CENTER,
-                        on_click=lambda e, r=row, c=col: self.on_tile_click(r, c),
-                    )
-                )
-
-            rows.append(flet.Row(controls=cols, spacing=0))
-
-        return flet.Column(controls=rows, spacing=0)
 
     # Run the main app
     def run_app(self, app: flet.Page):
@@ -191,10 +204,7 @@ class Game:
 
         self.refresh_board()
 
-
-board = Game()
 game_state = GameState()
+game = Game()
 
-moves.is_path_clear(3, 5, 6, 3, game_state.board)
-
-flet.run(board.run_app, assets_dir="Assets")
+flet.run(game.run_app, assets_dir="Assets")
