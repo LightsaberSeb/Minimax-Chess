@@ -145,6 +145,8 @@ class Game:
 
             self.check_en_passant((row, col), (start_row, start_col))
 
+            game_state.change_turn()
+
             self.selected_piece = None
             self.selected_moves = []
 

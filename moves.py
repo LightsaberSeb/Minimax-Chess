@@ -108,10 +108,7 @@ def make_move(srow: int, scol: int, trow: int, tcol: int, type: str, state):
             })
             
             state.is_promoting = True
-    
-    
-    
-    state.change_turn()
+
     state.moves.append(changes)
 
 def undo_move(state):
