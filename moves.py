@@ -1,8 +1,62 @@
 # File just to calculate every movement for each of the pieces
-# Row = x axis
-# Column = y axis
 
 # Helpers
+def check_move_type(piece: str, srow: int, scol: int, row: int, col: int, state):
+    type = "normal"
+    
+    # Castling
+    if piece[1] == "k":
+        if abs(col - scol) == 2:
+            type = "castle"
+
+    # En passant
+    if ((row, col) == state.en_passant 
+        and piece[1] == "p"
+        and scol != col
+        ):
+        type = "en passant"
+    
+    # Promotion
+    if piece[1] == "p":
+        match piece[0]:
+            case "w":
+                if row == 0:
+                    type = "promotion"
+            case "b":
+                if row == 7:
+                    type = "promotion"
+    
+    return type
+
+def get_pseudo_moves(color: str, state):
+    pseudo_moves = []
+    
+    for row in range(8):
+        for col in range(8):
+            piece = state.board[row][col]
+            if piece == "":
+                continue
+            
+            if piece[0] == color:
+                moves = state.move_functions[piece[1]](row, col, state)
+                for move in moves:
+                    pseudo_moves.append([(row, col), move])
+    
+    return pseudo_moves
+
+def get_legal_moves(color: str, state):
+    pseudo_moves = get_pseudo_moves(color, state)
+    legal_moves = []
+    
+    for move in pseudo_moves:
+        make_move(move[0][0], move[0][1], move[1][0], move[1][1], state)
+        
+        if not is_on_check(color, state):
+            legal_moves.append(move)
+        
+        undo_move(state)
+    return legal_moves
+
 def is_on_check(color: str, state):
     king = color+"k"
     opposite = state.opposite(color)
@@ -10,10 +64,11 @@ def is_on_check(color: str, state):
     
     return is_tile_attacked(row, col, state, opposite)
 
-def make_move(srow: int, scol: int, trow: int, tcol: int, type: str, state):
+def make_move(srow: int, scol: int, trow: int, tcol: int, state):
     changes = []
     captured = ""
     piece = state.board[srow][scol]
+    type = check_move_type(piece, srow, scol, trow, tcol, state)
     
     match type:
         case "normal":
@@ -107,7 +162,9 @@ def make_move(srow: int, scol: int, trow: int, tcol: int, type: str, state):
                 "type": type
             })
             
-            state.is_promoting = True
+
+    if piece[1] == "k":
+        state.king_pos[piece] = (trow, tcol)
 
     state.moves.append(changes)
 
@@ -124,9 +181,9 @@ def undo_move(state):
         state.board[trow][tcol] = ""
         state.board[srow][scol] = piece
         state.board[crow][ccol] = captured
-    
-    if state.is_promoting:
-        state.is_promoting = False
+        
+        if piece[1] == "k":
+            state.king_pos[piece] = (srow, scol)
 
 def is_path_clear(srow, scol, trow, tcol,  board):
     step_row = (trow > srow) - (trow < srow)
@@ -355,7 +412,7 @@ def king_moves(row: int, col: int, state):
         if 0 <= r < 8 and 0 <= c < 8:
             target = state.board[r][c]
             
-            make_move(row, col, r, c, "normal", state)
+            make_move(row, col, r, c, state)
             attacked = is_tile_attacked(r, c, state, opposite)
             undo_move(state)
             
