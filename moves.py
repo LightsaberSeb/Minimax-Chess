@@ -349,6 +349,7 @@ def castling(row: int, col: int, state):
             and state.board[7][6] == ""
             and not is_tile_attacked(7, 5, state, "b")
             and not is_tile_attacked(7, 6, state, "b")
+            and not is_tile_attacked(row, col, state, "b")
         ):
             moves.append((7, 6))
         # Long Castling
@@ -360,6 +361,7 @@ def castling(row: int, col: int, state):
             and not is_tile_attacked(7, 3, state, "b")
             and not is_tile_attacked(7, 2, state, "b")
             and not is_tile_attacked(7, 1, state, "b")
+            and not is_tile_attacked(row, col, state, "b")
         ):
             moves.append((7, 2))
     else:
@@ -370,6 +372,7 @@ def castling(row: int, col: int, state):
             and state.board[0][6] == ""
             and not is_tile_attacked(0, 5, state, "w")
             and not is_tile_attacked(0, 6, state, "w")
+            and not is_tile_attacked(row, col, state, "w")
         ):
             moves.append((0, 6))
         # Long Castling
@@ -381,6 +384,7 @@ def castling(row: int, col: int, state):
             and not is_tile_attacked(0, 3, state, "w")
             and not is_tile_attacked(0, 2, state, "w")
             and not is_tile_attacked(0, 1, state, "w")
+            and not is_tile_attacked(row, col, state, "w")
         ):
             moves.append((0, 2))
     

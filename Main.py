@@ -174,7 +174,7 @@ class Game:
             return
         
         if game_state.turn == game_state.ai_color:
-            move = self.ai.search(game_state.ai_color, 2)
+            move = self.ai.search(game_state.ai_color, float("-inf"), float("inf"), 3)
             
             if move is None:
                 print("Game Over")
