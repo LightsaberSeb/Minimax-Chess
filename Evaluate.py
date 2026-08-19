@@ -16,7 +16,7 @@ EVAL_WEIGHTS = {
     "material": 1.2,
     "positioning": 1.4,
     "mobility": 1.7,
-    "king_safety": 0.0,
+    "king_safety": 1.2,
     "stacked_pawns": 1.5,
     "rook_value": 1.3,
     "past_pawns": 1.6,
